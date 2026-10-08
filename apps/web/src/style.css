@@ -46,3 +46,8 @@ body,.app{background:var(--signature-ivory);color:var(--signature-navy)}
 .qualification-state{font-size:12px;text-transform:capitalize;color:var(--signature-slate)}
 .qualification-state.approved{color:var(--signature-positive)}
 .qualification-state.rejected,.qualification-state.suspended{color:var(--signature-danger)}
+
+.offer-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+.offer-actions .primary{margin-top:18px}
+.secondary-action{min-height:52px;border:1px solid var(--signature-line);border-radius:40px;background:white;color:var(--signature-navy);font-weight:700;margin-top:18px}
+.secondary-action:disabled{opacity:.5}
