@@ -1,13 +1,14 @@
 import type { Pool, PoolClient } from 'pg';
-export const categoryCodes = ['cleaning','babysitting','hair','plumbing','tutorial'] as const;
+export const categoryCodes = ['repairs','cleaning','maintenance','outdoor','moving_delivery','personal_assistance'] as const;
 export type Category = typeof categoryCodes[number];
 export function validateIntake(category: Category, data: Record<string, unknown>): string[] {
   const required: Record<Category,string[]> = {
+    repairs:['problemType','description'],
     cleaning:['propertyType','cleaningLevel','suppliesProvidedBy'],
-    babysitting:['childCount','childAges','guardianContact','careDuties','emergencyArrangements'],
-    hair:['serviceType'],
-    plumbing:['problemType','description'],
-    tutorial:['subject','level','sessionDurationMinutes']
+    maintenance:['workType','description'],
+    outdoor:['serviceType','propertyType'],
+    moving_delivery:['itemDescription','pickupAddress','dropoffAddress'],
+    personal_assistance:['assistanceType','description']
   };
   return required[category].filter(key => data[key] === undefined || data[key] === null || data[key] === '');
 }
