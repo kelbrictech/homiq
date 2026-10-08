@@ -1,0 +1,27 @@
+name: HOMIQ CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install backend dependencies
+        run: npm ci
+      - name: Typecheck backend
+        run: npm run typecheck
+      - name: Test backend
+        run: npm test
+      - name: Install frontend dependencies
+        working-directory: apps/web
+        run: npm install
+      - name: Build frontend
+        working-directory: apps/web
+        run: npm run build
