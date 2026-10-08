@@ -5,6 +5,7 @@ import path from 'node:path';
 import pg from 'pg';
 import {z} from 'zod';
 import {acceptOffer,categoryCodes,validateIntake} from './engine.js';
+if(process.env.NODE_ENV==='production') throw new Error('Production deployment blocked: secure authentication and authorization are not implemented.');
 const app=express();app.use(express.json({limit:'100kb'}));
 const demoPath=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../public/demo.html');
 app.get('/demo',(_req,res)=>res.sendFile(demoPath));
