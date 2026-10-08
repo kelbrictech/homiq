@@ -1,9 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
 import pg from 'pg';
 import {z} from 'zod';
 import {acceptOffer,categoryCodes,validateIntake} from './engine.js';
 const app=express();app.use(express.json({limit:'100kb'}));
+const demoPath=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../public/demo.html');
+app.get('/demo',(_req,res)=>res.sendFile(demoPath));
 const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
 const bookingInput=z.object({category:z.enum(categoryCodes),startsAt:z.string().datetime({offset:true}),endsAt:z.string().datetime({offset:true}),address:z.string().min(5),intake:z.record(z.unknown())});
 // DEVELOPMENT ONLY. No public deployment until verified authentication is implemented.
