@@ -11,10 +11,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: package-lock.json
       - name: Install backend dependencies
-        run: npm ci
+        run: npm install
       - name: Typecheck backend
         run: npm run typecheck
       - name: Test backend
