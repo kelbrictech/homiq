@@ -37,3 +37,12 @@ body,.app{background:var(--signature-ivory);color:var(--signature-navy)}
 .brand-logo{display:block;max-width:140px;width:auto;height:38px;object-fit:contain}
 .service-head>.asset-frame{width:72px;height:72px;border-radius:18px}
 @media(prefers-reduced-motion:reduce){.asset-frame img{transition:none}}
+
+.role-switch{position:relative;z-index:4;display:flex;justify-content:center;gap:4px;padding:8px;background:var(--signature-navy)}
+.role-switch button{border:1px solid #ffffff55;background:transparent;color:white;border-radius:20px;padding:9px 20px;min-height:44px}
+.role-switch button[aria-pressed="true"]{background:var(--signature-gold);color:var(--signature-navy);border-color:var(--signature-gold);font-weight:700}
+.qualification-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.qualification{min-height:80px;display:flex;flex-direction:column;gap:10px;justify-content:space-between;padding:14px;background:white;border:1px solid var(--signature-line);border-radius:14px;font-size:14px}
+.qualification-state{font-size:12px;text-transform:capitalize;color:var(--signature-slate)}
+.qualification-state.approved{color:var(--signature-positive)}
+.qualification-state.rejected,.qualification-state.suspended{color:var(--signature-danger)}
