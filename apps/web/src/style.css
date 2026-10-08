@@ -1,2 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;600;700&display=swap');
 :root{font-family:Figtree,system-ui,sans-serif;color:#14213d;background:#f2f5f7;font-synthesis:none}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #0e8a74;outline-offset:2px}h1,h2,.brand{font-family:'Bricolage Grotesque',system-ui,sans-serif}h1{font-size:clamp(26px,6vw,34px);line-height:1.1;margin:12px 0}h2{font-size:20px;margin:25px 0 14px}.app{min-height:100dvh;max-width:760px;margin:auto;background:#f2f5f7}.top{background:#14213d;color:white;padding:17px 20px;display:flex;align-items:center;justify-content:space-between}.brand{font-size:30px;font-weight:800;letter-spacing:-1.2px}.brand span{color:#ffc93c}.demo{font-size:10px;letter-spacing:1px;background:#32405a;padding:6px 8px;border-radius:20px}.content{padding:24px 18px calc(110px + env(safe-area-inset-bottom))}.eyebrow{display:flex;align-items:center;gap:5px;color:#0a6b5a;font-size:13px;font-weight:700}.sub{color:#607080;line-height:1.5;margin:4px 0 20px}.search{background:white;border:1px solid #dce3e8;border-radius:50px;display:flex;gap:10px;align-items:center;padding:0 15px;margin:20px 0}.search input{border:0;padding:15px 0;min-width:0;width:100%;background:transparent;outline:none}.categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.category{position:relative;display:flex;flex-direction:column;text-align:left;background:white;border:1px solid #e2e7eb;border-radius:19px;padding:16px;min-height:166px;color:#14213d}.category:hover{border-color:#0e8a74}.category strong{font-family:'Bricolage Grotesque';font-size:17px;margin:12px 0 5px}.category small{color:#61717f;line-height:1.4;font-size:12px}.cat-icon{font-size:26px;background:#e8f5ef;border-radius:13px;width:46px;height:46px;display:grid;place-items:center}.arrow{position:absolute;right:12px;top:18px;color:#0e8a74}.trust{display:flex;gap:12px;align-items:flex-start;background:#e1f4ee;border-radius:14px;padding:15px;margin-top:22px;font-size:13px;line-height:1.5;color:#175b4c}.trust svg{flex-shrink:0}.bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:760px;background:white;border-top:1px solid #dce3e8;display:flex;justify-content:space-around;padding:10px 8px calc(10px + env(safe-area-inset-bottom));z-index:3}.bottom button{display:flex;flex-direction:column;align-items:center;gap:5px;color:#667786;background:none;border:0;min-width:80px;min-height:48px;font-size:12px}.bottom button.active{color:#0a6b5a;font-weight:700}.back{border:0;background:none;display:flex;align-items:center;gap:8px;color:#0a6b5a;font-weight:700;padding:8px 0}.service-head{display:flex;align-items:center;gap:14px;margin:20px 0}.service-head>span{font-size:32px;background:white;padding:17px;border-radius:18px}.service-head h1{margin:0}.panel{background:white;border:1px solid #e0e7ea;border-radius:20px;padding:20px}.panel h2{margin:0 0 8px}.panel label{display:block;font-size:14px;font-weight:700;margin:18px 0 0}.panel input,.panel select{display:block;width:100%;min-height:48px;border:1px solid #cbd7db;border-radius:10px;margin-top:8px;padding:12px;background:white;color:#14213d}.primary{width:100%;display:flex;justify-content:center;align-items:center;gap:10px;background:#ffc93c;border:0;color:#14213d;border-radius:40px;padding:16px;min-height:52px;font-family:'Bricolage Grotesque';font-weight:800;margin-top:24px}.primary:disabled{opacity:.5}.note{font-size:12px;color:#61717f;line-height:1.5;margin-top:14px}.warning{display:flex;align-items:flex-start;gap:10px;background:#fff0d6;border:1px solid #e8d09d;border-radius:12px;padding:13px;font-size:13px;margin-bottom:18px}.warning svg{flex-shrink:0}.error{color:#b82c39;font-size:13px}.booking{background:white;padding:18px;border-radius:16px;margin-top:12px;border:1px solid #e0e7ea}.row{display:flex;align-items:center;justify-content:space-between}.status{font-size:12px;padding:5px 10px;border-radius:20px;background:#e2f3ed;color:#0a6b5a;text-transform:capitalize}.booking p{display:flex;gap:8px;align-items:center;color:#607080;font-size:13px}.booking small{color:#80909a}.empty{text-align:center;background:white;padding:40px 20px;border-radius:18px;color:#607080}.empty h2{color:#14213d}.empty svg{color:#0e8a74}@media(min-width:760px){.app{min-height:100vh;box-shadow:0 0 60px #14213d12}.content{padding:35px 35px 120px}.categories{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:340px){.category{padding:12px}.category strong{font-size:15px}.category small{font-size:11px}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* HOMIQ Signature — semantic design tokens. Replace tokens, never page-by-page values. */
+:root{
+  --signature-navy:#172B3A;
+  --signature-gold:#D9B777;
+  --signature-ivory:#F8F5EE;
+  --signature-slate:#566777;
+  --signature-white:#FFFFFF;
+  --signature-line:#E4DED2;
+  --signature-positive:#267A68;
+  --signature-danger:#B33E48;
+  --asset-radius:16px;
+}
+body,.app{background:var(--signature-ivory);color:var(--signature-navy)}
+.top{background:var(--signature-navy)}
+.brand span{color:var(--signature-gold)}
+.demo{background:#304656}
+.eyebrow,.back,.arrow,.empty svg{color:var(--signature-slate)}
+.category,.panel,.booking,.search,.empty{background:var(--signature-white);border-color:var(--signature-line)}
+.category:hover{border-color:var(--signature-gold)}
+.category,.service-head h1{color:var(--signature-navy)}
+.sub,.category small,.note,.booking p{color:var(--signature-slate)}
+.primary{background:var(--signature-gold);color:var(--signature-navy)}
+.trust{background:#EEE8DB;color:var(--signature-navy)}
+.bottom{border-color:var(--signature-line)}
+.bottom button.active{color:var(--signature-navy)}
+.status{background:#E6F2ED;color:var(--signature-positive)}
+/* Reserved frames prevent reflow when the final artwork is inserted. */
+.asset-frame{display:grid;place-items:center;overflow:hidden;flex:none;background:#EDE7DA;border:1px solid var(--signature-line);border-radius:var(--asset-radius)}
+.asset-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.asset-frame--category{width:48px;height:48px;aspect-ratio:1}
+.asset-frame--generic{width:100%;aspect-ratio:var(--asset-ratio,16 / 9)}
+.asset-placeholder{display:grid;place-items:center;width:100%;height:100%;color:var(--signature-slate);font-size:22px;text-align:center;padding:4px}
+.asset-frame--generic .asset-placeholder{font-size:13px;letter-spacing:.03em}
+.brand-logo{display:block;max-width:140px;width:auto;height:38px;object-fit:contain}
+.service-head>.asset-frame{width:72px;height:72px;border-radius:18px}
+@media(prefers-reduced-motion:reduce){.asset-frame img{transition:none}}
