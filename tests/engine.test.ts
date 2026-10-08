@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateIntake,categoryCodes} from '../src/engine.js';
-test('all five categories seeded in code',()=>assert.deepEqual(categoryCodes,['cleaning','babysitting','hair','plumbing','tutorial']));
-test('babysitting requires safeguarding intake',()=>assert.deepEqual(validateIntake('babysitting',{}),['childCount','childAges','guardianContact','careDuties','emergencyArrangements']));
-test('valid plumbing intake passes',()=>assert.deepEqual(validateIntake('plumbing',{problemType:'leak',description:'Kitchen sink'}),[]));
+test('six categories',()=>assert.deepEqual(categoryCodes,['repairs','cleaning','maintenance','outdoor','moving_delivery','personal_assistance']));
+test('personal assistance requires details',()=>assert.deepEqual(validateIntake('personal_assistance',{}),['assistanceType','description']));
+test('repair intake passes',()=>assert.deepEqual(validateIntake('repairs',{problemType:'leak',description:'Kitchen sink'}),[]));
