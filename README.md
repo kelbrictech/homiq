@@ -1,19 +1,22 @@
-# HOMIQ — Home Services Marketplace
+# HOMIQ — Hybrid Home Services Marketplace
 
-Hybrid marketplace MVP for general cleaning, nanny/babysitting, hair services, plumbing, and tutoring.
+## MVP service categories
+1. Repairs
+2. Cleaning
+3. Maintenance
+4. Outdoor
+5. Moving & Delivery
+6. Personal Assistance
 
-## Architecture
-- Customers book instant or scheduled home services.
-- Independent providers and company workers can serve multiple categories.
-- Each provider-category combination requires independent verification.
-- The booking engine enforces eligibility, assignment exclusivity, and auditable job transitions.
+## Demo dataset
+`sql/002_seed_demo.sql` creates **30 fictional customers and 30 fictional providers**, with category-specific qualifications and availability. Run only against a disposable development database after `sql/001_init.sql`. These records are NOT authenticated login accounts; authentication is not implemented yet.
 
-## Implementation
-Initial TypeScript/Express + PostgreSQL backend starter is being migrated into this repository. This README is the initial repository bootstrap, **not** a deployed application.
+## Local setup (development only)
+1. `npm install`
+2. Create PostgreSQL database `homiq` and set `DATABASE_URL` in `.env` based on `.env.example`.
+3. Run `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f sql/001_init.sql`
+4. Run `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f sql/002_seed_demo.sql`
+5. `npm test` and `npm run typecheck`
+6. `npm run dev`
 
-## MVP milestones
-1. Database schema and category seed data
-2. Booking intake and category validation
-3. Provider verification and availability
-4. Transactional dispatch and assignment
-5. Admin operations and testing
+**Security:** API uses `x-dev-user-id` as an untrusted development placeholder. Do not deploy publicly. Production authentication, authorization, verification evidence, booking histories, payments, and frontend remain outstanding.
