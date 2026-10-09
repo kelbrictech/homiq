@@ -44,6 +44,7 @@ app.post('/api/offers/:id/accept',async(req,res)=>{const userId=actor(req);if(!u
 // Development fixtures only. Never enable these endpoints in a public deployment.
 providerDevRoutes(app,pool);
 walletRoutes(app,pool);
+cashoutRoutes(app,pool);
 adminDevRoutes(app,pool);
 if(process.env.ENABLE_DEMO_ROUTES==='true' && process.env.NODE_ENV!=='production'){
   app.get('/api/dev/customers',async(_req,res)=>{try{const q=await pool.query("SELECT id,display_name FROM users WHERE email LIKE 'customer%@example.test' ORDER BY display_name");res.json(q.rows);}catch{res.status(500).json({error:'demo customer query failed'});}});
