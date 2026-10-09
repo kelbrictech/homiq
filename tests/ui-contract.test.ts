@@ -10,7 +10,7 @@ test('customer workflow has booking, cancellation, dispute and event history wir
  for(const fragment of ["/api/bookings/:id/transition","/api/bookings/:id/events","/api/bookings"]) assert.ok(server.includes(fragment),fragment);
 });
 test('provider workflow has offers, jobs and lifecycle wiring',()=>{
- for(const fragment of ["'/provider/offers'","'/provider/jobs'","'/provider/qualifications'","'/offers/'+id+'/accept'","'/provider/offers/'+id+'/decline'","action:'start'","action:'complete'"]) assert.ok(provider.includes(fragment),fragment);
+ for(const fragment of ["'/provider/offers'","'/provider/jobs'","'/provider/qualifications'","'/offers/'+id+'/accept'","'/provider/offers/'+id+'/decline'","transition(j.id,'start')","transition(j.id,'complete')"]) assert.ok(provider.includes(fragment),fragment);
  for(const fragment of ["/api/provider/jobs","/api/provider/offers","/api/provider/qualifications","/api/provider/offers/:id/decline"]) assert.ok(routes.includes(fragment),fragment);
 });
 test('UI labels development identity clearly',()=>{
