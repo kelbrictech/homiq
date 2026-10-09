@@ -21,6 +21,37 @@ app.get('/health',(_req,res)=>res.json({ok:true}));
 app.get('/api/services',async(_req,res)=>{try{const r=await pool.query('SELECT code,label FROM categories ORDER BY label');res.json(r.rows);}catch{res.status(500).json({error:'database unavailable'});}});
 app.post('/api/bookings',async(req,res)=>{const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});const parsed=bookingInput.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'Invalid booking fields',details:parsed.error.flatten()});const b=parsed.data;const missing=validateIntake(b.category,b.intake);if(missing.length)return res.status(400).json({error:'Invalid or missing service details',missing});if(b.category==='personal_assistance')return res.status(422).json({error:'Personal Assistance bookings are temporarily unavailable pending enhanced screening.'});if(new Date(b.endsAt)<=new Date(b.startsAt)||new Date(b.startsAt)<=new Date()||new Date(b.endsAt).getTime()-new Date(b.startsAt).getTime()>8*3600000||new Date(b.startsAt).getTime()-Date.now()>31*86400000)return res.status(400).json({error:'invalid booking time'});try{const r=await pool.query('INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,status',[userId,b.category,b.startsAt,b.endsAt,b.address,JSON.stringify(b.intake)]);let dispatch={offersCreated:0};try{dispatch=await generateOffers(pool,r.rows[0].id)}catch(e){console.error('Dispatch pending for booking',r.rows[0].id,e)}res.status(201).json({...r.rows[0],...dispatch,status:dispatch.offersCreated?'matching':'requested',message:dispatch.offersCreated?'Providers notified':'Request saved; no available providers yet.'});}catch{res.status(500).json({error:'booking creation failed'});}});
 app.get('/api/bookings/:id',async(req,res)=>{const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});try{await reconcileOffers();const r=await pool.query('SELECT * FROM bookings WHERE id=$1 AND customer_id=$2',[req.params.id,userId]);if(!r.rowCount)return res.status(404).json({error:'not found'});res.json(r.rows[0]);}catch{res.status(500).json({error:'query failed'});}});
+
+const bookingTransition=z.object({action:z.enum(['cancel','start','complete','dispute'])});
+app.post('/api/bookings/:id/transition',async(req,res)=>{
+ const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});
+ const parsed=bookingTransition.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'Invalid action'});
+ const action=parsed.data.action;
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  const r=await client.query(`SELECT b.id,b.status,b.customer_id,p.user_id AS provider_user_id
+    FROM bookings b LEFT JOIN assignments a ON a.booking_id=b.id LEFT JOIN providers p ON p.id=a.provider_id
+    WHERE b.id=$1 FOR UPDATE OF b`,[req.params.id]);
+  if(!r.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Booking not found'});}
+  const b=r.rows[0];
+  const isCustomer=b.customer_id===userId, isProvider=b.provider_user_id===userId;
+  const allowed=action==='cancel' ? isCustomer&&['requested','matching','confirmed'].includes(b.status)
+    : action==='start' ? isProvider&&b.status==='confirmed'
+    : action==='complete' ? isProvider&&b.status==='in_progress'
+    : (isCustomer||isProvider)&&['confirmed','in_progress','completed'].includes(b.status);
+  if(!allowed){await client.query('ROLLBACK');return res.status(409).json({error:'Action not permitted for this actor or booking state'});}
+  const next=action==='cancel'?'canceled':action==='start'?'in_progress':action==='complete'?'completed':'disputed';
+  await client.query('UPDATE bookings SET status=$2 WHERE id=$1',[b.id,next]);
+  if(next==='canceled')await client.query("UPDATE dispatch_offers SET status='expired' WHERE booking_id=$1 AND status='pending'",[b.id]);
+  await client.query('INSERT INTO booking_events(booking_id,actor_user_id,event_type,detail) VALUES($1,$2,$3,$4)',[b.id,userId,action,JSON.stringify({from:b.status,to:next})]);
+  await client.query('COMMIT');res.json({bookingId:b.id,status:next});
+ }catch(e){await client.query('ROLLBACK');console.error('Booking transition failed',e);res.status(500).json({error:'Transition failed'});}finally{client.release();}
+});
+app.get('/api/bookings/:id/events',async(req,res)=>{
+ const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});
+ try{const r=await pool.query(`SELECT e.event_type,e.detail,e.created_at FROM booking_events e JOIN bookings b ON b.id=e.booking_id LEFT JOIN assignments a ON a.booking_id=b.id LEFT JOIN providers p ON p.id=a.provider_id WHERE b.id=$1 AND (b.customer_id=$2 OR p.user_id=$2) ORDER BY e.id`,[req.params.id,userId]);res.json(r.rows);}catch{res.status(500).json({error:'Events unavailable'});}
+});
 app.post('/api/offers/:id/accept',async(req,res)=>{const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});try{res.json(await acceptOffer(pool,req.params.id,userId));}catch(e){const msg=(e as Error).message;const known=['Offer not found','Booking unavailable','Provider not qualified','Provider not eligible','Offer expired or unavailable','Provider not available','Provider already booked'];res.status(known.includes(msg)?409:500).json({error:known.includes(msg)?msg:'Unable to process offer'});}});
 
 // Development fixtures only. Never enable these endpoints in a public deployment.
