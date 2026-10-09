@@ -2,6 +2,7 @@ import 'dotenv/config';
 import {adminDevRoutes} from './admin-dev-routes.js';
 import {providerDevRoutes} from './provider-dev-routes.js';
 import {walletRoutes} from './wallet-routes.js';
+import {cashoutRoutes} from './cashout-routes.js';
 import {generateOffers} from './dispatch.js';
 import {sweepAndRedispatch} from './redispatch.js';
 import {transitionBooking,TransitionRejected} from './lifecycle.js';
