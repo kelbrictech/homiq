@@ -78,3 +78,17 @@ test('account creation, legal policies and top-up are visible but not falsely li
  assert.ok(customer.includes('<AccountProvisions/>'));
  for(const file of ['apps/web/public/legal/terms.txt','apps/web/public/legal/privacy.txt'])assert.ok(readFileSync(file,'utf8').includes('DRAFT FOR PHILIPPINE LEGAL REVIEW'));
 });
+
+test('provider cash-out simulation and admin decision UI are wired to development-only API',()=>{
+ const providerCashout=readFileSync('apps/web/src/ProviderCashout.tsx','utf8');
+ const adminCashout=readFileSync('apps/web/src/AdminCashouts.tsx','utf8');
+ const routes=readFileSync('src/cashout-routes.ts','utf8');
+ const migration=readFileSync('sql/004_demo_cashout.sql','utf8');
+ assert.ok(provider.includes('<ProviderCashout'));
+ assert.ok(readFileSync('apps/web/src/AdminApp.tsx','utf8').includes('<AdminCashouts'));
+ for(const fragment of ['/api/provider/cashouts','Simulation','No GCash, Maya or bank transfer'])assert.ok(providerCashout.includes(fragment),fragment);
+ for(const fragment of ['/api/dev/admin/cashouts/','Approve simulated payout','Reject & release credits'])assert.ok(adminCashout.includes(fragment),fragment);
+ for(const fragment of ['FOR UPDATE','reserved_cents','cashout_reserve','cashout_approve','cashout_release','DEV_ADMIN_KEY'])assert.ok(routes.includes(fragment),fragment);
+ assert.ok(migration.includes('demo_cashout_requests'));
+ assert.ok(server.includes('cashoutRoutes(app,pool)'));
+});
