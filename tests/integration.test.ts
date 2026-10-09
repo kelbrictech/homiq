@@ -6,6 +6,7 @@ import {generateOffers} from '../src/dispatch.js';
 import {acceptOffer} from '../src/engine.js';
 const url=process.env.TEST_DATABASE_URL;
 test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DATABASE_URL required':false}, async()=>{
+ if(!new URL(url!).pathname.endsWith('/homiq_test')) throw new Error('Refusing destructive integration setup outside homiq_test');
  const pool=new pg.Pool({connectionString:url});
  try {
   await pool.query('BEGIN'); await pool.query('ROLLBACK');
