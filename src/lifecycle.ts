@@ -22,7 +22,16 @@ export async function transitionBooking(pool:Pool,bookingId:string,userId:string
   }
   const next=action==='cancel'?'canceled':action==='start'?'in_progress':action==='complete'?'completed':'disputed';
   await client.query('UPDATE bookings SET status=$2 WHERE id=$1',[bookingId,next]);
-  if(next==='canceled')await client.query("UPDATE dispatch_offers SET status='expired' WHERE booking_id=$1 AND status='pending'",[bookingId]);
+  if(next==='canceled'){
+   const hold=await client.query("SELECT customer_id,amount_cents FROM demo_wallet_holds WHERE booking_id=$1 AND status='reserved' FOR UPDATE",[bookingId]);
+   if(hold.rowCount){
+    const h=hold.rows[0];
+    await client.query('UPDATE demo_wallets SET reserved_cents=reserved_cents-$2,updated_at=now() WHERE user_id=$1',[h.customer_id,h.amount_cents]);
+    await client.query("UPDATE demo_wallet_holds SET status='released',settled_at=now() WHERE booking_id=$1",[bookingId]);
+    await client.query("INSERT INTO demo_wallet_ledger(user_id,booking_id,entry_type,amount_cents,idempotency_key) VALUES($1,$2,'release',$3,$4)",[h.customer_id,bookingId,h.amount_cents,'release:'+bookingId]);
+   }
+   await client.query("UPDATE dispatch_offers SET status='expired' WHERE booking_id=$1 AND status='pending'",[bookingId]);
+  }
   await client.query('INSERT INTO booking_events(booking_id,actor_user_id,event_type,detail) VALUES($1,$2,$3,$4)',[bookingId,userId,action,JSON.stringify({from:b.status,to:next})]);
   await client.query('COMMIT');
   return {bookingId,status:next};
