@@ -51,3 +51,5 @@ body,.app{background:var(--signature-ivory);color:var(--signature-navy)}
 .offer-actions .primary{margin-top:18px}
 .secondary-action{min-height:52px;border:1px solid var(--signature-line);border-radius:40px;background:white;color:var(--signature-navy);font-weight:700;margin-top:18px}
 .secondary-action:disabled{opacity:.5}
+
+.activity{margin-top:16px;padding:14px;border-left:3px solid var(--signature-gold);background:var(--signature-ivory);border-radius:8px}.activity h3{margin:0 0 12px;font-size:15px}.activity p{display:block;margin:8px 0;line-height:1.5}.booking>.secondary-action{margin-top:12px;margin-right:8px;padding:10px 16px;min-height:44px}.booking .offer-actions:empty{display:none}
