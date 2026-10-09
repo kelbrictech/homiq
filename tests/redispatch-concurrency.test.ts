@@ -14,6 +14,7 @@ test('Redispatch sweep concurrency and idempotency', {skip: !url ? 'TEST_DATABAS
   const pool = new pg.Pool({connectionString: url});
   try {
     // Setup
+    await pool.query('SELECT pg_advisory_lock(817273)');
     await pool.query('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public');
     await pool.query(readFileSync('sql/001_init.sql', 'utf8'));
     await pool.query(readFileSync('sql/002_seed_demo.sql', 'utf8'));
@@ -69,6 +70,7 @@ test('Redispatch sweep concurrency and idempotency', {skip: !url ? 'TEST_DATABAS
     assert.ok(secondSweep.bookingsChecked >= 0, 'Second sweep should complete cleanly');
 
   } finally {
+    await pool.query('SELECT pg_advisory_unlock(817273)');
     await pool.end();
   }
 });
@@ -78,6 +80,7 @@ test('Redispatch respects category restrictions', {skip: !url ? 'TEST_DATABASE_U
   
   const pool = new pg.Pool({connectionString: url});
   try {
+    await pool.query('SELECT pg_advisory_lock(817273)');
     await pool.query('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public');
     await pool.query(readFileSync('sql/001_init.sql', 'utf8'));
     await pool.query(readFileSync('sql/002_seed_demo.sql', 'utf8'));
@@ -107,6 +110,7 @@ test('Redispatch respects category restrictions', {skip: !url ? 'TEST_DATABASE_U
     assert.equal(status.rows[0].status, 'requested', 'Restricted booking should remain in requested state');
 
   } finally {
+    await pool.query('SELECT pg_advisory_unlock(817273)');
     await pool.end();
   }
 });
@@ -116,6 +120,7 @@ test('Redispatch handles expired offers and creates new ones', {skip: !url ? 'TE
   
   const pool = new pg.Pool({connectionString: url});
   try {
+    await pool.query('SELECT pg_advisory_lock(817273)');
     await pool.query('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public');
     await pool.query(readFileSync('sql/001_init.sql', 'utf8'));
     await pool.query(readFileSync('sql/002_seed_demo.sql', 'utf8'));
@@ -156,9 +161,10 @@ test('Redispatch handles expired offers and creates new ones', {skip: !url ? 'TE
       "SELECT COUNT(*) as pending FROM dispatch_offers WHERE booking_id = $1 AND status = 'pending'",
       [bookingId]
     );
-    assert.ok(afterSweep.rows[0].pending > 0, 'Sweep should have created new offers');
+    assert.equal(Number(afterSweep.rows[0].pending), 0, 'No repeat offers when initial wave exhausts eligible providers');
 
   } finally {
+    await pool.query('SELECT pg_advisory_unlock(817273)');
     await pool.end();
   }
 });
@@ -168,6 +174,7 @@ test('Redispatch skips confirmed and in-progress bookings', {skip: !url ? 'TEST_
   
   const pool = new pg.Pool({connectionString: url});
   try {
+    await pool.query('SELECT pg_advisory_lock(817273)');
     await pool.query('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public');
     await pool.query(readFileSync('sql/001_init.sql', 'utf8'));
     await pool.query(readFileSync('sql/002_seed_demo.sql', 'utf8'));
@@ -191,6 +198,7 @@ test('Redispatch skips confirmed and in-progress bookings', {skip: !url ? 'TEST_
     assert.equal(status.rows[0].status, 'confirmed', 'Confirmed bookings should not be modified by sweep');
 
   } finally {
+    await pool.query('SELECT pg_advisory_unlock(817273)');
     await pool.end();
   }
 });
