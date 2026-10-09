@@ -142,7 +142,7 @@ test('Redispatch handles expired offers and creates new ones', {skip: !url ? 'TE
       "SELECT COUNT(*) as pending FROM dispatch_offers WHERE booking_id = $1 AND status = 'pending'",
       [bookingId]
     );
-    assert.equal(beforeSweep.rows[0].pending, 0, 'Expired offers should not be pending');
+    assert.ok(Number(beforeSweep.rows[0].pending) > 0, 'Offer status remains pending until the sweep runs');
 
     // Run sweep to expire and redispatch
     const sweep = await sweepAndRedispatch(pool);
