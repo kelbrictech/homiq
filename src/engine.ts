@@ -29,6 +29,7 @@ export async function acceptOffer(pool: Pool, offerId: string, actorUserId: stri
     const o=offer.rows[0];
     if (o.user_id!==actorUserId || !o.active || o.qualification_status!=='approved' || (o.qualification_expires_at && new Date(o.qualification_expires_at)<=new Date())) throw new Error('Provider not eligible');
     if (o.status!=='pending' || new Date(o.expires_at)<=new Date()) throw new Error('Offer expired or unavailable');
+    if(booking.rows[0].category_code==='personal_assistance') throw new Error('Enhanced screening required');
     const avail = await client.query(`SELECT 1 FROM availability WHERE provider_id=$1 AND starts_at<=$2 AND ends_at>=$3 LIMIT 1`,[o.provider_id,booking.rows[0].starts_at,booking.rows[0].ends_at]);
     if (!avail.rowCount) throw new Error('Provider not available');
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[o.provider_id]);
