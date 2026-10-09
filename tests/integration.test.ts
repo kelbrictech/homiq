@@ -3,6 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import pg from 'pg';
+import express from 'express';
+import {walletRoutes} from '../src/wallet-routes.js';
 import {generateOffers} from '../src/dispatch.js';
 import {sweepAndRedispatch} from '../src/redispatch.js';
 import {acceptOffer} from '../src/engine.js';
@@ -43,6 +45,38 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   assert.ok(sweep.bookingsChecked>=0);
   const history=await pool.query('SELECT event_type FROM booking_events WHERE booking_id=$1 ORDER BY id',[id]);
   assert.deepEqual(history.rows.slice(-3).map(x=>x.event_type),['start','complete','dispute']);
+  const app=express();app.use(express.json());walletRoutes(app,pool);
+  const server=app.listen(0,'127.0.0.1');
+  try{
+   const address=server.address();if(!address||typeof address==='string')throw new Error('No test server');
+   const root='http://127.0.0.1:'+address.port;
+   const post=async(path:string,actor:string,body?:unknown)=>{
+    const response=await fetch(root+path,{method:'POST',headers:{'Content-Type':'application/json','x-dev-user-id':actor},body:JSON.stringify(body||{})});
+    return {status:response.status,body:await response.json()};
+   };
+   const second=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake,status) VALUES($1,'repairs',$2,$3,'Calamba City','{}','confirmed') RETURNING id",[customer,starts,ends]);
+   const quoteBooking=second.rows[0].id;
+   await pool.query('INSERT INTO assignments(booking_id,provider_id) VALUES($1,$2)',[quoteBooking,provider.value.providerId]);
+   const quoted=await post('/api/bookings/'+quoteBooking+'/quotes',providerId,{amountCents:125000});
+   assert.equal(quoted.status,201);
+   const rejectedActor=await post('/api/bookings/'+quoteBooking+'/quotes/'+quoted.body.id+'/decision',providerId,{decision:'approve'});
+   assert.equal(rejectedActor.status,403);
+   const approved=await post('/api/bookings/'+quoteBooking+'/quotes/'+quoted.body.id+'/decision',customer,{decision:'approve'});
+   assert.equal(approved.status,200);
+   const repeated=await post('/api/bookings/'+quoteBooking+'/quotes/'+quoted.body.id+'/decision',customer,{decision:'approve'});
+   assert.equal(repeated.status,409);
+   const held=await pool.query('SELECT amount_cents,status FROM demo_wallet_holds WHERE booking_id=$1',[quoteBooking]);
+   assert.equal(held.rows[0].status,'reserved');
+   assert.equal(Number(held.rows[0].amount_cents),125000);
+   const premature=await post('/api/bookings/'+quoteBooking+'/confirm-delivery',customer);
+   assert.equal(premature.status,409);
+   assert.equal((await transitionBooking(pool,quoteBooking,providerId,'start')).status,'in_progress');
+   assert.equal((await transitionBooking(pool,quoteBooking,providerId,'complete')).status,'completed');
+   const [settle1,settle2]=await Promise.all([post('/api/bookings/'+quoteBooking+'/confirm-delivery',customer),post('/api/bookings/'+quoteBooking+'/confirm-delivery',customer)]);
+   assert.equal(settle1.status,200);assert.equal(settle2.status,200);
+   assert.equal((await pool.query("SELECT COUNT(*)::int AS n FROM demo_wallet_ledger WHERE booking_id=$1 AND entry_type='capture'",[quoteBooking])).rows[0].n,1);
+   assert.equal((await pool.query('SELECT status FROM bookings WHERE id=$1',[quoteBooking])).rows[0].status,'settled');
+  }finally{await new Promise<void>((resolve,reject)=>server.close(err=>err?reject(err):resolve()))}
   const cancellation=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake) VALUES($1,'repairs',$2,$3,'Calamba City','{}') RETURNING id",[customer,starts,ends]);
   const cancelId=cancellation.rows[0].id;
   await generateOffers(pool,cancelId);
