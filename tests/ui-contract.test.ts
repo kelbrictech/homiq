@@ -71,3 +71,10 @@ test('nonbinding service price hints and fictional wallet balance are clearly la
  assert.ok(server.includes("'/api/demo/wallet'"));
  for(const fragment of ['demo_wallets','demo_wallet_holds','demo_wallet_ledger','ON CONFLICT(user_id) DO NOTHING'])assert.ok(walletSql.includes(fragment),fragment);
 });
+
+test('account creation, legal policies and top-up are visible but not falsely live',()=>{
+ const provisions=readFileSync('apps/web/src/AccountProvisions.tsx','utf8');
+ for(const fragment of ['Create an account','Top up wallet','Terms of Service','Privacy Policy','Registration preview only','Top-up unavailable','disabled'])assert.ok(provisions.includes(fragment),fragment);
+ assert.ok(customer.includes('<AccountProvisions/>'));
+ for(const file of ['apps/web/public/legal/terms.txt','apps/web/public/legal/privacy.txt'])assert.ok(readFileSync(file,'utf8').includes('DRAFT FOR PHILIPPINE LEGAL REVIEW'));
+});
