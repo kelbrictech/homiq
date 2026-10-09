@@ -10,7 +10,7 @@ export function validateIntake(category: Category, data: Record<string, unknown>
     moving_delivery:['itemDescription','pickupAddress','dropoffAddress'],
     personal_assistance:['assistanceType','description']
   };
-  return required[category].filter(key => data[key] === undefined || data[key] === null || data[key] === '');
+  return required[category].filter(key => typeof data[key] !== 'string' || !(data[key] as string).trim() || (data[key] as string).trim().length > 1000);
 }
 export async function acceptOffer(pool: Pool, offerId: string, actorUserId: string) {
   const client: PoolClient = await pool.connect();
