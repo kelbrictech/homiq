@@ -62,3 +62,12 @@ test('provider availability schedule has owner-scoped API and interactive contro
  for(const fragment of ["/api/provider/availability","NOT EXISTS(SELECT 1 FROM availability","JOIN providers p ON p.id=a.provider_id","Slot not found or assigned booking overlaps"])assert.ok(routes.includes(fragment),fragment);
  for(const fragment of ["saveSlot","removeSlot","Available from","Available until","Add availability"])assert.ok(provider.includes(fragment),fragment);
 });
+
+test('nonbinding service price hints and fictional wallet balance are clearly labeled',()=>{
+ const prices=readFileSync('apps/web/src/pricing.ts','utf8');
+ const walletSql=readFileSync('sql/003_demo_wallet.sql','utf8');
+ for(const key of ['repairs','cleaning','maintenance','outdoor','moving_delivery','personal_assistance'])assert.ok(prices.includes(key),key);
+ for(const fragment of ['demoPricing','Provider quote may differ','No charge on booking','Fictional test wallet','Simulation only'])assert.ok(customer.includes(fragment),fragment);
+ assert.ok(server.includes("'/api/demo/wallet'"));
+ for(const fragment of ['demo_wallets','demo_wallet_holds','demo_wallet_ledger','ON CONFLICT(user_id) DO NOTHING'])assert.ok(walletSql.includes(fragment),fragment);
+});
