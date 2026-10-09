@@ -30,3 +30,10 @@ test('admin console supports guarded oversight, qualification decisions and disp
  assert.ok(server.includes('adminDevRoutes(app,pool)'));
  assert.ok(shell.includes('<AdminApp/>'));
 });
+
+test('provider development routes are gated and pending offers redact customer intake',()=>{
+ assert.ok(routes.includes("app.use('/api/provider'"));
+ assert.ok(routes.includes("ENABLE_DEMO_ROUTES"));
+ assert.ok(routes.includes("ALLOW_INSECURE_DEV_AUTH"));
+ assert.ok(routes.includes("ELSE '{}'::jsonb END AS intake"));
+});
