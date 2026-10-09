@@ -52,3 +52,8 @@ test('enhanced-screening qualifications cannot be approved by dev admin',()=>{
  assert.ok(adminRoutes.includes("requires_enhanced_screening"));
  assert.ok(adminRoutes.includes("Enhanced screening required"));
 });
+
+test('demo customer identity and completed-job ratings persist locally and can be reset',()=>{
+ for(const fragment of ["homiq:customer","homiq:ratings","b.status==='completed'","Reset local demo preferences","Not published."]) assert.ok(customer.includes(fragment),fragment);
+ assert.ok(customer.includes("setBookings([])"),'switching accounts clears prior account bookings before reload');
+});
