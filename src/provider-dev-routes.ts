@@ -1,6 +1,8 @@
 import type {Express} from 'express';
 import type {Pool} from 'pg';
 export function providerDevRoutes(app:Express,pool:Pool){
+ app.use('/api/provider',(req,res,next)=>{if(process.env.NODE_ENV==='production'||process.env.ALLOW_INSECURE_DEV_AUTH!=='true'||process.env.ENABLE_DEMO_ROUTES!=='true')return res.status(404).json({error:'Development route unavailable'});next();});
+ app.use('/api/dev/providers',(req,res,next)=>{if(process.env.NODE_ENV==='production'||process.env.ALLOW_INSECURE_DEV_AUTH!=='true'||process.env.ENABLE_DEMO_ROUTES!=='true')return res.status(404).json({error:'Development route unavailable'});next();});
  app.get('/api/provider/jobs',async(req,res)=>{
   const id=req.header('x-dev-user-id');if(!id)return res.status(401).json({error:'actor required'});
   try{const q=await pool.query("SELECT b.id,b.category_code,b.status,b.starts_at,b.ends_at,b.address_text,b.intake FROM bookings b JOIN assignments a ON a.booking_id=b.id JOIN providers p ON p.id=a.provider_id WHERE p.user_id=$1 ORDER BY b.starts_at DESC LIMIT 100",[id]);res.json(q.rows)}catch{res.status(500).json({error:'jobs unavailable'})}
@@ -11,7 +13,7 @@ export function providerDevRoutes(app:Express,pool:Pool){
  });
  app.get('/api/provider/offers',async(req,res)=>{
   const id=req.header('x-dev-user-id');if(!id)return res.status(401).json({error:'actor required'});
-  try{const r=await pool.query("SELECT o.id,o.booking_id,o.status,o.expires_at,b.category_code,b.starts_at,b.intake,CASE WHEN o.status='accepted' THEN b.address_text ELSE split_part(b.address_text,',',2) END AS address_text FROM dispatch_offers o JOIN providers p ON p.id=o.provider_id JOIN bookings b ON b.id=o.booking_id WHERE p.user_id=$1 AND o.status='pending' AND o.expires_at>now() ORDER BY b.created_at DESC LIMIT 100",[id]);res.json(r.rows)}
+  try{const r=await pool.query("SELECT o.id,o.booking_id,o.status,o.expires_at,b.category_code,b.starts_at,CASE WHEN o.status='accepted' THEN b.intake ELSE '{}'::jsonb END AS intake,CASE WHEN o.status='accepted' THEN b.address_text ELSE split_part(b.address_text,',',2) END AS address_text FROM dispatch_offers o JOIN providers p ON p.id=o.provider_id JOIN bookings b ON b.id=o.booking_id WHERE p.user_id=$1 AND o.status='pending' AND o.expires_at>now() ORDER BY b.created_at DESC LIMIT 100",[id]);res.json(r.rows)}
   catch{res.status(500).json({error:'offer lookup failed'})}
  });
  app.get('/api/provider/qualifications',async(req,res)=>{
