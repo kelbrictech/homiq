@@ -8,6 +8,8 @@ export async function generateOffers(pool:Pool,bookingId:string){
   if(!booking.rowCount)throw new Error('Booking not found');
   const b=booking.rows[0];
   if(!['requested','matching'].includes(b.status))throw new Error('Booking cannot be dispatched');
+  // Restricted category remains visible but cannot be dispatched before enhanced-screening clearance exists.
+  if(b.category_code==='personal_assistance') { await client.query("INSERT INTO booking_events(booking_id,event_type,detail) VALUES($1,'restricted_category_blocked','{}'::jsonb)",[bookingId]); await client.query('COMMIT'); return {bookingId,offersCreated:0,reason:'enhanced_screening_pending'}; }
   const eligible=await client.query(`SELECT p.id FROM providers p JOIN provider_categories pc ON pc.provider_id=p.id
     WHERE p.active=true AND pc.category_code=$1 AND pc.status='approved'
     AND (pc.expires_at IS NULL OR pc.expires_at>now())
