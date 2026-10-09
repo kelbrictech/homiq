@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import {providerDevRoutes} from './provider-dev-routes.js';
 import {generateOffers} from './dispatch.js';
+import {sweepAndRedispatch} from './redispatch.js';
 import {transitionBooking,TransitionRejected} from './lifecycle.js';
 import express from 'express';
 import {fileURLToPath} from 'node:url';
@@ -45,3 +46,5 @@ if(process.env.ENABLE_DEMO_ROUTES==='true' && process.env.NODE_ENV!=='production
 pool.on('error',err=>console.error('Database pool error',err));
 app.use((err:unknown,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{console.error('Request error',err);res.status(400).json({error:'Invalid request body'});});
 app.listen(Number(process.env.PORT||3000),'127.0.0.1',()=>console.log('HOMIQ local development API listening'));
+let sweepRunning=false;
+setInterval(async()=>{if(sweepRunning)return;sweepRunning=true;try{await sweepAndRedispatch(pool)}catch(e){console.error('Offer sweep failed',e)}finally{sweepRunning=false}},60_000).unref();
