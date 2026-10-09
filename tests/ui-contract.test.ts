@@ -37,3 +37,8 @@ test('provider development routes are gated and pending offers redact customer i
  assert.ok(routes.includes("ALLOW_INSECURE_DEV_AUTH"));
  assert.ok(routes.includes("ELSE '{}'::jsonb END AS intake"));
 });
+
+test('booking response never falsely claims notifications were delivered',()=>{
+ assert.ok(server.includes('notifications are not enabled'));
+ assert.ok(!server.includes('Providers notified'));
+});
