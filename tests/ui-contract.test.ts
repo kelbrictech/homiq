@@ -57,3 +57,8 @@ test('demo customer identity and completed-job ratings persist locally and can b
  for(const fragment of ["homiq:customer","homiq:ratings","b.status==='completed'","Reset local demo preferences","Not published."]) assert.ok(customer.includes(fragment),fragment);
  assert.ok(customer.includes("setBookings([])"),'switching accounts clears prior account bookings before reload');
 });
+
+test('provider availability schedule has owner-scoped API and interactive controls',()=>{
+ for(const fragment of ["/api/provider/availability","NOT EXISTS(SELECT 1 FROM availability","JOIN providers p ON p.id=a.provider_id","Slot not found or assigned booking overlaps"])assert.ok(routes.includes(fragment),fragment);
+ for(const fragment of ["saveSlot","removeSlot","Available from","Available until","Add availability"])assert.ok(provider.includes(fragment),fragment);
+});
