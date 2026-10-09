@@ -80,7 +80,12 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   const cancellation=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake) VALUES($1,'repairs',$2,$3,'Calamba City','{}') RETURNING id",[customer,starts,ends]);
   const cancelId=cancellation.rows[0].id;
   await generateOffers(pool,cancelId);
+  await pool.query("UPDATE bookings SET status='confirmed' WHERE id=$1",[cancelId]);
+  await pool.query("INSERT INTO demo_wallet_holds(booking_id,customer_id,amount_cents,status) VALUES($1,$2,25000,'reserved')",[cancelId,customer]);
+  await pool.query('UPDATE demo_wallets SET reserved_cents=reserved_cents+25000 WHERE user_id=$1',[customer]);
   assert.equal((await transitionBooking(pool,cancelId,customer,'cancel')).status,'canceled');
+  const released=await pool.query('SELECT status FROM demo_wallet_holds WHERE booking_id=$1',[cancelId]);
+  assert.equal(released.rows[0].status,'released');
   const pending=await pool.query("SELECT count(*)::int AS n FROM dispatch_offers WHERE booking_id=$1 AND status='pending'",[cancelId]);
   assert.equal(pending.rows[0].n,0);
   await assert.rejects(transitionBooking(pool,cancelId,customer,'cancel'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
