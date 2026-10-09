@@ -41,10 +41,11 @@ test('Redispatch sweep concurrency and idempotency', {skip: !url ? 'TEST_DATABAS
     const initialOffers = await pool.query(
       "SELECT COUNT(*) as cnt FROM dispatch_offers WHERE status = 'pending'"
     );
-    const initialCount = initialOffers.rows[0].cnt;
+    const initialCount = Number(initialOffers.rows[0].cnt);
     assert.ok(initialCount > 0, 'Initial offers should have been created');
 
-    // Simulate concurrent sweep operations (multiple redispatch calls in parallel)
+    await pool.query("UPDATE dispatch_offers SET expires_at=now()-interval '1 second' WHERE booking_id=ANY($1::uuid[])",[bookingIds]);
+    // Simulate concurrent sweep operations after offers expire
     const sweepResults = await Promise.all([
       sweepAndRedispatch(pool),
       sweepAndRedispatch(pool),
@@ -61,6 +62,8 @@ test('Redispatch sweep concurrency and idempotency', {skip: !url ? 'TEST_DATABAS
       assert.ok(typeof result.expired === 'number');
     }
 
+    const duplicates=await pool.query("SELECT booking_id,provider_id,COUNT(*) AS n FROM dispatch_offers WHERE booking_id=ANY($1::uuid[]) GROUP BY booking_id,provider_id HAVING COUNT(*)>1",[bookingIds]);
+    assert.equal(duplicates.rowCount,0);
     // Verify idempotency: second sweep should be harmless
     const secondSweep = await sweepAndRedispatch(pool);
     assert.ok(secondSweep.bookingsChecked >= 0, 'Second sweep should complete cleanly');
