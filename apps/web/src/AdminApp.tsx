@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {BrandAsset} from './VisualAssets';
+import AdminCashouts from './AdminCashouts';
 type Summary={bookings:{status:string;count:number}[];qualifications:{status:string;count:number}[];disputes:{id:string;category_code:string;customer_name:string}[]};
 type Qualification={provider_id:string;category_code:string;status:string;display_name:string};
 export default function AdminApp(){
@@ -18,6 +19,7 @@ export default function AdminApp(){
  {summary&&<><h2>Bookings</h2><div className="qualification-grid">{summary.bookings.map(b=><div className="qualification" key={b.status}><strong>{b.status}</strong><span>{b.count}</span></div>)}</div>
  <h2>Qualification status</h2><div className="qualification-grid">{summary.qualifications.map(q=><div className="qualification" key={q.status}><strong>{q.status}</strong><span>{q.count}</span></div>)}</div>
  <h2>Disputed bookings</h2>{summary.disputes.length?summary.disputes.map(d=><article className="booking" key={d.id}><strong>{d.category_code}</strong><p>{d.customer_name}</p><small>{d.id}</small><div className="offer-actions"><button className="primary" disabled={busy} onClick={()=>resolve(d.id,'completed')}>Resolve completed</button><button className="secondary-action" disabled={busy} onClick={()=>resolve(d.id,'canceled')}>Resolve canceled</button></div></article>):<p className="sub">No disputes recorded.</p>}
+ <AdminCashouts adminKey={key}/>
  <h2>Provider qualifications</h2>{rows.map(q=><article className="booking" key={q.provider_id+q.category_code}><div className="row"><strong>{q.display_name}</strong><span className="status">{q.status}</span></div><p>{q.category_code}</p><div className="offer-actions">{q.status!=='approved'&&<button className="primary" disabled={busy} onClick={()=>decide(q,'approved')}>Approve</button>}{q.status!=='rejected'&&<button className="secondary-action" disabled={busy} onClick={()=>decide(q,'rejected')}>Reject</button>}{q.status==='approved'&&<button className="secondary-action" disabled={busy} onClick={()=>decide(q,'suspended')}>Suspend</button>}</div></article>)}</>}
  </main></div>;
 }
