@@ -1,6 +1,10 @@
 import type {Express} from 'express';
 import type {Pool} from 'pg';
 export function providerDevRoutes(app:Express,pool:Pool){
+ app.get('/api/provider/jobs',async(req,res)=>{
+  const id=req.header('x-dev-user-id');if(!id)return res.status(401).json({error:'actor required'});
+  try{const q=await pool.query("SELECT b.id,b.category_code,b.status,b.starts_at,b.ends_at,b.address_text,b.intake FROM bookings b JOIN assignments a ON a.booking_id=b.id JOIN providers p ON p.id=a.provider_id WHERE p.user_id=$1 ORDER BY b.starts_at DESC LIMIT 100",[id]);res.json(q.rows)}catch{res.status(500).json({error:'jobs unavailable'})}
+ });
  app.get('/api/dev/providers',async(_req,res)=>{
   try{const r=await pool.query("SELECT u.id,u.display_name FROM users u JOIN providers p ON p.user_id=u.id WHERE u.email LIKE 'provider%@example.test' ORDER BY u.display_name");res.json(r.rows)}
   catch{res.status(500).json({error:'provider lookup failed'})}
