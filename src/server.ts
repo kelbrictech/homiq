@@ -50,7 +50,7 @@ app.post('/api/bookings/:id/transition',async(req,res)=>{
 });
 app.get('/api/bookings/:id/events',async(req,res)=>{
  const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});
- try{const r=await pool.query(`SELECT e.event_type,e.detail,e.created_at FROM booking_events e JOIN bookings b ON b.id=e.booking_id LEFT JOIN assignments a ON a.booking_id=b.id LEFT JOIN providers p ON p.id=a.provider_id WHERE b.id=$1 AND (b.customer_id=$2 OR p.user_id=$2) ORDER BY e.id`,[req.params.id,userId]);res.json(r.rows);}catch{res.status(500).json({error:'Events unavailable'});}
+ try{const owner=await pool.query(`SELECT b.id FROM bookings b LEFT JOIN assignments a ON a.booking_id=b.id LEFT JOIN providers p ON p.id=a.provider_id WHERE b.id=$1 AND (b.customer_id=$2 OR p.user_id=$2)`,[req.params.id,userId]);if(!owner.rowCount)return res.status(404).json({error:'Booking not found'});const r=await pool.query('SELECT event_type,detail,created_at FROM booking_events WHERE booking_id=$1 ORDER BY id',[req.params.id]);res.json(r.rows);}catch{res.status(500).json({error:'Events unavailable'});}
 });
 app.post('/api/offers/:id/accept',async(req,res)=>{const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});try{res.json(await acceptOffer(pool,req.params.id,userId));}catch(e){const msg=(e as Error).message;const known=['Offer not found','Booking unavailable','Provider not qualified','Provider not eligible','Offer expired or unavailable','Provider not available','Provider already booked'];res.status(known.includes(msg)?409:500).json({error:known.includes(msg)?msg:'Unable to process offer'});}});
 
