@@ -7,8 +7,8 @@ Evidence rule: a committed feature is not accepted until its GitHub Actions test
 | V0.6A/B — Booking + dispatch vertical slice | Implemented, limited | GitHub Actions run 37876476470: four tests passed including PostgreSQL dispatch/acceptance |
 | V0.6C — Booking lifecycle | In progress | Transactional cancel/start/complete/dispute implemented; PostgreSQL lifecycle tests added, latest run must be checked |
 | V0.6C — Offer expiry and redispatch | Partial | One-minute sweep and subsequent provider waves committed; PostgreSQL sweep coverage added; awaiting CI verification |
-| V0.6D — Provider workspace and admin console | Partial / not started | Provider offer UI partial; admin approval/oversight missing |
-| V0.6E — Customer journey and mobile UX | Partial | Customer booking UI partial; full history, ratings, responsive visual acceptance missing |
+| V0.6D — Provider workspace and admin console | Partial / not started | Provider assigned jobs, lifecycle actions and activity UI implemented; admin approval/oversight missing |
+| V0.6E — Customer journey and mobile UX | Partial | Customer booking history, cancellation, dispute and activity UI implemented; ratings and visual acceptance missing |
 | V0.7 — Secure identity and roles | Blocked for public release | Development identity header only; production startup intentionally disabled |
 | V0.8 — Payments, notifications, launch hardening | Not started | Payment integration, end-to-end tests, observability, staging verification missing |
 
