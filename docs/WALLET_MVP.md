@@ -1,3 +1,11 @@
+# Implementation audit — October 9, 2026
+
+The original specification below predates implementation. Current code on main includes fictional wallet schema, owner-scoped balance/ledger endpoints, provider quotation entry, customer approval/rejection, delivery confirmation, atomic settlement, cancellation release, and admin-dispute cancellation release. Lifecycle now requires funded quotation before start. PostgreSQL integration coverage was expanded for approval authorization, insufficient balance, cancellation release and duplicate settlement.
+
+**Not complete:** secure account registration and consent storage; live payments/top-up; refund and post-settlement dispute policies; deployed browser E2E acceptance; production release. This remains development-only.
+
+---
+
 # HOMIQ MVP — internal wallet settlement contract
 Status: Product decision recorded; **not implemented**. Internal balances are fictional test credits, not real money.
 
