@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import {providerDevRoutes} from './provider-dev-routes.js';
 import {generateOffers} from './dispatch.js';
+import {transitionBooking,TransitionRejected} from './lifecycle.js';
 import express from 'express';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
@@ -26,27 +27,8 @@ const bookingTransition=z.object({action:z.enum(['cancel','start','complete','di
 app.post('/api/bookings/:id/transition',async(req,res)=>{
  const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});
  const parsed=bookingTransition.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'Invalid action'});
- const action=parsed.data.action;
- const client=await pool.connect();
- try{
-  await client.query('BEGIN');
-  const r=await client.query(`SELECT b.id,b.status,b.customer_id,p.user_id AS provider_user_id
-    FROM bookings b LEFT JOIN assignments a ON a.booking_id=b.id LEFT JOIN providers p ON p.id=a.provider_id
-    WHERE b.id=$1 FOR UPDATE OF b`,[req.params.id]);
-  if(!r.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Booking not found'});}
-  const b=r.rows[0];
-  const isCustomer=b.customer_id===userId, isProvider=b.provider_user_id===userId;
-  const allowed=action==='cancel' ? isCustomer&&['requested','matching','confirmed'].includes(b.status)
-    : action==='start' ? isProvider&&b.status==='confirmed'
-    : action==='complete' ? isProvider&&b.status==='in_progress'
-    : (isCustomer||isProvider)&&['confirmed','in_progress','completed'].includes(b.status);
-  if(!allowed){await client.query('ROLLBACK');return res.status(409).json({error:'Action not permitted for this actor or booking state'});}
-  const next=action==='cancel'?'canceled':action==='start'?'in_progress':action==='complete'?'completed':'disputed';
-  await client.query('UPDATE bookings SET status=$2 WHERE id=$1',[b.id,next]);
-  if(next==='canceled')await client.query("UPDATE dispatch_offers SET status='expired' WHERE booking_id=$1 AND status='pending'",[b.id]);
-  await client.query('INSERT INTO booking_events(booking_id,actor_user_id,event_type,detail) VALUES($1,$2,$3,$4)',[b.id,userId,action,JSON.stringify({from:b.status,to:next})]);
-  await client.query('COMMIT');res.json({bookingId:b.id,status:next});
- }catch(e){await client.query('ROLLBACK');console.error('Booking transition failed',e);res.status(500).json({error:'Transition failed'});}finally{client.release();}
+ try{res.json(await transitionBooking(pool,req.params.id,userId,parsed.data.action));}
+ catch(e){if(e instanceof TransitionRejected)return res.status(e.code).json({error:e.message});console.error('Booking transition failed',e);res.status(500).json({error:'Transition failed'});}
 });
 app.get('/api/bookings/:id/events',async(req,res)=>{
  const userId=actor(req);if(!userId)return res.status(401).json({error:'dev actor required'});
