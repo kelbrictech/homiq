@@ -42,3 +42,13 @@ test('booking response never falsely claims notifications were delivered',()=>{
  assert.ok(server.includes('notifications are not enabled'));
  assert.ok(!server.includes('Providers notified'));
 });
+
+test('pending offers never reveal address, including addresses without commas',()=>{
+ assert.ok(routes.includes("'[Address hidden until acceptance]'"));
+ assert.ok(!routes.includes("split_part(b.address_text"));
+});
+test('enhanced-screening qualifications cannot be approved by dev admin',()=>{
+ const adminRoutes=readFileSync('src/admin-dev-routes.ts','utf8');
+ assert.ok(adminRoutes.includes("requires_enhanced_screening"));
+ assert.ok(adminRoutes.includes("Enhanced screening required"));
+});
