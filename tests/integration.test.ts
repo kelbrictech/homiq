@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import pg from 'pg';
 import express from 'express';
 import {walletRoutes} from '../src/wallet-routes.js';
+import {cashoutRoutes} from '../src/cashout-routes.js';
 import {generateOffers} from '../src/dispatch.js';
 import {sweepAndRedispatch} from '../src/redispatch.js';
 import {acceptOffer} from '../src/engine.js';
@@ -19,6 +20,8 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   await pool.query(readFileSync('sql/001_init.sql','utf8'));
   await pool.query(readFileSync('sql/002_seed_demo.sql','utf8'));
   await pool.query(readFileSync('sql/003_demo_wallet.sql','utf8'));
+  await pool.query(readFileSync('sql/004_demo_cashout.sql','utf8'));
+  process.env.ALLOW_INSECURE_DEV_AUTH='true';process.env.ENABLE_DEMO_ROUTES='true';process.env.DEV_ADMIN_KEY='cashout-test-admin';
   const customer='10000000-0000-4000-8000-000000000001';
   const starts=new Date(Date.now()+3*86400000), ends=new Date(starts.getTime()+2*3600000);
   const booking=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake) VALUES($1,'repairs',$2,$3,'Calamba City', $4) RETURNING id",[customer,starts,ends,JSON.stringify({problemType:'leak',description:'Sink leak'})]);
@@ -45,7 +48,7 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   assert.ok(sweep.bookingsChecked>=0);
   const history=await pool.query('SELECT event_type FROM booking_events WHERE booking_id=$1 ORDER BY id',[id]);
   assert.deepEqual(history.rows.slice(-3).map(x=>x.event_type),['start','complete','dispute']);
-  const app=express();app.use(express.json());walletRoutes(app,pool);
+  const app=express();app.use(express.json());walletRoutes(app,pool);cashoutRoutes(app,pool);
   const server=await new Promise<import('node:http').Server>(resolve=>{const instance=app.listen(0,'127.0.0.1',()=>resolve(instance))});
   try{
    const address=server.address();if(!address||typeof address==='string')throw new Error('No test server');
@@ -82,6 +85,25 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
    assert.equal(settle1.status,200);assert.equal(settle2.status,200);
    assert.equal((await pool.query("SELECT COUNT(*)::int AS n FROM demo_wallet_ledger WHERE booking_id=$1 AND entry_type='capture'",[quoteBooking])).rows[0].n,1);
    assert.equal((await pool.query('SELECT status FROM bookings WHERE id=$1',[quoteBooking])).rows[0].status,'settled');
+   const cashout=(amountCents:number)=>post('/api/provider/cashouts',providerId,{amountCents,method:'gcash',destinationLabel:'Test wallet'});
+   const unauthorized=await post('/api/provider/cashouts',customer,{amountCents:10000,method:'gcash',destinationLabel:'Test wallet'});
+   assert.equal(unauthorized.status,403);
+   const tooMuch=await cashout(200000);assert.equal(tooMuch.status,409);
+   const [first,secondCashout]=await Promise.all([cashout(80000),cashout(80000)]);
+   assert.equal([first.status,secondCashout.status].filter(x=>x===201).length,1);
+   const request=[first,secondCashout].find(x=>x.status===201)!.body;
+   const adminPost=async(decision:'approve'|'reject',id:string)=>{const response=await fetch(root+'/api/dev/admin/cashouts/'+id+'/decision',{method:'POST',headers:{'Content-Type':'application/json','x-dev-admin-key':'cashout-test-admin'},body:JSON.stringify({decision})});return {status:response.status,body:await response.json()}};
+   const [decision1,decision2]=await Promise.all([adminPost('approve',request.id),adminPost('approve',request.id)]);
+   assert.deepEqual([decision1.status,decision2.status].sort(),[200,409]);
+   const providerWallet=await pool.query('SELECT balance_cents,reserved_cents FROM demo_wallets WHERE user_id=$1',[providerId]);
+   assert.equal(Number(providerWallet.rows[0].balance_cents),45000);
+   assert.equal(Number(providerWallet.rows[0].reserved_cents),0);
+   const refundRequest=await cashout(25000);assert.equal(refundRequest.status,201);
+   const rejected=await adminPost('reject',refundRequest.body.id);assert.equal(rejected.status,200);
+   const afterReject=await pool.query('SELECT balance_cents,reserved_cents FROM demo_wallets WHERE user_id=$1',[providerId]);
+   assert.equal(Number(afterReject.rows[0].balance_cents),45000);
+   assert.equal(Number(afterReject.rows[0].reserved_cents),0);
+
   }finally{await new Promise<void>((resolve,reject)=>server.close(err=>err?reject(err):resolve()))}
   const cancellation=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake) VALUES($1,'repairs',$2,$3,'Calamba City','{}') RETURNING id",[customer,starts,ends]);
   const cancelId=cancellation.rows[0].id;
