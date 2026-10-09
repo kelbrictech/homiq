@@ -13,7 +13,7 @@ export function providerDevRoutes(app:Express,pool:Pool){
  });
  app.get('/api/provider/offers',async(req,res)=>{
   const id=req.header('x-dev-user-id');if(!id)return res.status(401).json({error:'actor required'});
-  try{const r=await pool.query("SELECT o.id,o.booking_id,o.status,o.expires_at,b.category_code,b.starts_at,CASE WHEN o.status='accepted' THEN b.intake ELSE '{}'::jsonb END AS intake,CASE WHEN o.status='accepted' THEN b.address_text ELSE split_part(b.address_text,',',2) END AS address_text FROM dispatch_offers o JOIN providers p ON p.id=o.provider_id JOIN bookings b ON b.id=o.booking_id WHERE p.user_id=$1 AND o.status='pending' AND o.expires_at>now() ORDER BY b.created_at DESC LIMIT 100",[id]);res.json(r.rows)}
+  try{const r=await pool.query("SELECT o.id,o.booking_id,o.status,o.expires_at,b.category_code,b.starts_at,CASE WHEN o.status='accepted' THEN b.intake ELSE '{}'::jsonb END AS intake,CASE WHEN o.status='accepted' THEN b.address_text ELSE '[Address hidden until acceptance]' END AS address_text FROM dispatch_offers o JOIN providers p ON p.id=o.provider_id JOIN bookings b ON b.id=o.booking_id WHERE p.user_id=$1 AND o.status='pending' AND o.expires_at>now() ORDER BY b.created_at DESC LIMIT 100",[id]);res.json(r.rows)}
   catch{res.status(500).json({error:'offer lookup failed'})}
  });
  app.get('/api/provider/qualifications',async(req,res)=>{
