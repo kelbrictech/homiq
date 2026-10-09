@@ -46,7 +46,7 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   const history=await pool.query('SELECT event_type FROM booking_events WHERE booking_id=$1 ORDER BY id',[id]);
   assert.deepEqual(history.rows.slice(-3).map(x=>x.event_type),['start','complete','dispute']);
   const app=express();app.use(express.json());walletRoutes(app,pool);
-  const server=app.listen(0,'127.0.0.1');
+  const server=await new Promise<import('node:http').Server>(resolve=>{const instance=app.listen(0,'127.0.0.1',()=>resolve(instance))});
   try{
    const address=server.address();if(!address||typeof address==='string')throw new Error('No test server');
    const root='http://127.0.0.1:'+address.port;
