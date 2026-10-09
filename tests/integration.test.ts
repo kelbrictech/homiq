@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import pg from 'pg';
 import {generateOffers} from '../src/dispatch.js';
 import {acceptOffer} from '../src/engine.js';
+import {transitionBooking,TransitionRejected} from '../src/lifecycle.js';
 const url=process.env.TEST_DATABASE_URL;
 test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DATABASE_URL required':false}, async()=>{
  if(!new URL(url!).pathname.endsWith('/homiq_test')) throw new Error('Refusing destructive integration setup outside homiq_test');
@@ -23,5 +24,24 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   assert.equal(attempts.filter(x=>x.status==='fulfilled').length,1);
   const assignment=await pool.query('SELECT * FROM assignments WHERE booking_id=$1',[id]);assert.equal(assignment.rowCount,1);
   const status=await pool.query('SELECT status FROM bookings WHERE id=$1',[id]);assert.equal(status.rows[0].status,'confirmed');
+  const provider=attempts.find(x=>x.status==='fulfilled') as PromiseFulfilledResult<{bookingId:string;providerId:string;status:string}>;
+  const providerUser=await pool.query('SELECT user_id FROM providers WHERE id=$1',[provider.value.providerId]);
+  const providerId=providerUser.rows[0].user_id;
+  await assert.rejects(transitionBooking(pool,id,customer,'start'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
+  assert.equal((await transitionBooking(pool,id,providerId,'start')).status,'in_progress');
+  await assert.rejects(transitionBooking(pool,id,providerId,'start'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
+  assert.equal((await transitionBooking(pool,id,providerId,'complete')).status,'completed');
+  assert.equal((await transitionBooking(pool,id,customer,'dispute')).status,'disputed');
+  await assert.rejects(transitionBooking(pool,id,customer,'cancel'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
+  const history=await pool.query('SELECT event_type FROM booking_events WHERE booking_id=$1 ORDER BY id',[id]);
+  assert.deepEqual(history.rows.slice(-3).map(x=>x.event_type),['start','complete','dispute']);
+  const cancellation=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake) VALUES($1,'repairs',$2,$3,'Calamba City','{}') RETURNING id",[customer,starts,ends]);
+  const cancelId=cancellation.rows[0].id;
+  await generateOffers(pool,cancelId);
+  assert.equal((await transitionBooking(pool,cancelId,customer,'cancel')).status,'canceled');
+  const pending=await pool.query("SELECT count(*)::int AS n FROM dispatch_offers WHERE booking_id=$1 AND status='pending'",[cancelId]);
+  assert.equal(pending.rows[0].n,0);
+  await assert.rejects(transitionBooking(pool,cancelId,customer,'cancel'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
+
  } finally {await pool.end();}
 });
