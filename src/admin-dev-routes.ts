@@ -20,6 +20,12 @@ export function adminDevRoutes(app:Express,pool:Pool){
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
+   const lock=await client.query("SELECT id FROM bookings WHERE id=$1 AND status='disputed' FOR UPDATE",[req.params.bookingId]);
+   if(!lock.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Booking is not disputed'});}
+   if(outcome==='canceled'){
+    const hold=await client.query("SELECT customer_id,amount_cents FROM demo_wallet_holds WHERE booking_id=$1 AND status='reserved' FOR UPDATE",[req.params.bookingId]);
+    if(hold.rowCount){const h=hold.rows[0];await client.query('UPDATE demo_wallets SET reserved_cents=reserved_cents-$2,updated_at=now() WHERE user_id=$1',[h.customer_id,h.amount_cents]);await client.query("UPDATE demo_wallet_holds SET status='released',settled_at=now() WHERE booking_id=$1",[req.params.bookingId]);await client.query("INSERT INTO demo_wallet_ledger(user_id,booking_id,entry_type,amount_cents,idempotency_key) VALUES($1,$2,'release',$3,$4)",[h.customer_id,req.params.bookingId,h.amount_cents,'release:'+req.params.bookingId]);}
+   }
    const q=await client.query("UPDATE bookings SET status=$2 WHERE id=$1 AND status='disputed' RETURNING id,status",[req.params.bookingId,outcome]);
    if(!q.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Booking is not disputed'});}
    await client.query("INSERT INTO booking_events(booking_id,event_type,detail) VALUES($1,'admin_dispute_resolved',$2::jsonb)",[req.params.bookingId,JSON.stringify({outcome})]);
