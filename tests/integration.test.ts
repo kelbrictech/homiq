@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import pg from 'pg';
 import {generateOffers} from '../src/dispatch.js';
+import {sweepAndRedispatch} from '../src/redispatch.js';
 import {acceptOffer} from '../src/engine.js';
 import {transitionBooking,TransitionRejected} from '../src/lifecycle.js';
 const url=process.env.TEST_DATABASE_URL;
@@ -33,6 +34,8 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   assert.equal((await transitionBooking(pool,id,providerId,'complete')).status,'completed');
   assert.equal((await transitionBooking(pool,id,customer,'dispute')).status,'disputed');
   await assert.rejects(transitionBooking(pool,id,customer,'cancel'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
+  const sweep=await sweepAndRedispatch(pool);
+  assert.ok(sweep.bookingsChecked>=0);
   const history=await pool.query('SELECT event_type FROM booking_events WHERE booking_id=$1 ORDER BY id',[id]);
   assert.deepEqual(history.rows.slice(-3).map(x=>x.event_type),['start','complete','dispute']);
   const cancellation=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake) VALUES($1,'repairs',$2,$3,'Calamba City','{}') RETURNING id",[customer,starts,ends]);
