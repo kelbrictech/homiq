@@ -16,6 +16,10 @@ export async function transitionBooking(pool:Pool,bookingId:string,userId:string
     :action==='complete'?isProvider&&b.status==='in_progress'
     :(isCustomer||isProvider)&&['confirmed','in_progress','completed'].includes(b.status);
   if(!allowed)throw new TransitionRejected(409,'Action not permitted for this actor or booking state');
+  if(action==='start'){
+   const funded=await client.query("SELECT 1 FROM demo_wallet_holds WHERE booking_id=$1 AND status='reserved'",[bookingId]);
+   if(!funded.rowCount)throw new TransitionRejected(409,'Approved funded quote required');
+  }
   const next=action==='cancel'?'canceled':action==='start'?'in_progress':action==='complete'?'completed':'disputed';
   await client.query('UPDATE bookings SET status=$2 WHERE id=$1',[bookingId,next]);
   if(next==='canceled')await client.query("UPDATE dispatch_offers SET status='expired' WHERE booking_id=$1 AND status='pending'",[bookingId]);
