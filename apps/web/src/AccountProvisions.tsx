@@ -3,7 +3,7 @@ export default function AccountProvisions(){
  const [view,setView]=useState<'menu'|'register'|'terms'|'privacy'|'topup'>('menu');
  const [role,setRole]=useState<'customer'|'provider'>('customer');
  const [ack,setAck]=useState(false);
- const legal={terms:'/legal/terms',privacy:'/legal/privacy'};
+ const legal={terms:'/legal/terms.txt',privacy:'/legal/privacy.txt'};
  return <section className="panel" aria-label="Account and billing provisions">
  <h2>Account & billing</h2>
  {view!=='menu'&&<button className="back" onClick={()=>setView('menu')}>← Account menu</button>}
