@@ -61,6 +61,12 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
    assert.equal(quoted.status,201);
    const rejectedActor=await post('/api/bookings/'+quoteBooking+'/quotes/'+quoted.body.id+'/decision',providerId,{decision:'approve'});
    assert.equal(rejectedActor.status,403);
+   const underfunded=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake,status) VALUES($1,'repairs',$2,$3,'Calamba City','{}','confirmed') RETURNING id",[customer,starts,ends]);
+   await pool.query('INSERT INTO assignments(booking_id,provider_id) VALUES($1,$2)',[underfunded.rows[0].id,provider.value.providerId]);
+   const largeQuote=await post('/api/bookings/'+underfunded.rows[0].id+'/quotes',providerId,{amountCents:600000});
+   assert.equal(largeQuote.status,201);
+   const denied=await post('/api/bookings/'+underfunded.rows[0].id+'/quotes/'+largeQuote.body.id+'/decision',customer,{decision:'approve'});
+   assert.equal(denied.status,409);
    const approved=await post('/api/bookings/'+quoteBooking+'/quotes/'+quoted.body.id+'/decision',customer,{decision:'approve'});
    assert.equal(approved.status,200);
    const repeated=await post('/api/bookings/'+quoteBooking+'/quotes/'+quoted.body.id+'/decision',customer,{decision:'approve'});
