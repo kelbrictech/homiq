@@ -16,6 +16,7 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   await pool.query('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public');
   await pool.query(readFileSync('sql/001_init.sql','utf8'));
   await pool.query(readFileSync('sql/002_seed_demo.sql','utf8'));
+  await pool.query(readFileSync('sql/003_demo_wallet.sql','utf8'));
   const customer='10000000-0000-4000-8000-000000000001';
   const starts=new Date(Date.now()+3*86400000), ends=new Date(starts.getTime()+2*3600000);
   const booking=await pool.query("INSERT INTO bookings(customer_id,category_code,starts_at,ends_at,address_text,intake) VALUES($1,'repairs',$2,$3,'Calamba City', $4) RETURNING id",[customer,starts,ends,JSON.stringify({problemType:'leak',description:'Sink leak'})]);
@@ -30,6 +31,9 @@ test('Postgres booking, dispatch, acceptance and conflict', {skip:!url?'TEST_DAT
   const providerUser=await pool.query('SELECT user_id FROM providers WHERE id=$1',[provider.value.providerId]);
   const providerId=providerUser.rows[0].user_id;
   await assert.rejects(transitionBooking(pool,id,customer,'start'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
+  await assert.rejects(transitionBooking(pool,id,providerId,'start'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
+  await pool.query("INSERT INTO demo_wallet_holds(booking_id,customer_id,amount_cents,status) VALUES($1,$2,50000,'reserved')",[id,customer]);
+  await pool.query('UPDATE demo_wallets SET reserved_cents=reserved_cents+50000 WHERE user_id=$1',[customer]);
   assert.equal((await transitionBooking(pool,id,providerId,'start')).status,'in_progress');
   await assert.rejects(transitionBooking(pool,id,providerId,'start'),(e:unknown)=>e instanceof TransitionRejected&&e.code===409);
   assert.equal((await transitionBooking(pool,id,providerId,'complete')).status,'completed');
