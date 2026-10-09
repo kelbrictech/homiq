@@ -17,3 +17,16 @@ test('UI labels development identity clearly',()=>{
  assert.ok(customer.includes('Development identity selection is not authentication'));
  assert.ok(provider.includes('Development account selector only'));
 });
+
+test('admin console supports guarded oversight, qualification decisions and dispute resolution',()=>{
+ const admin=readFileSync('apps/web/src/AdminApp.tsx','utf8');
+ const routes=readFileSync('src/admin-dev-routes.ts','utf8');
+ const shell=readFileSync('apps/web/src/main.tsx','utf8');
+ for(const path of ['/summary','/qualifications','/disputes/'])assert.ok(admin.includes(path),path);
+ for(const path of ['/api/dev/admin/summary','/api/dev/admin/qualifications','/api/dev/admin/disputes/:bookingId/resolve'])assert.ok(routes.includes(path),path);
+ assert.ok(routes.includes("x-dev-admin-key"));
+ assert.ok(routes.includes("ENABLE_DEMO_ROUTES"));
+ assert.ok(routes.includes("admin_dispute_resolved"));
+ assert.ok(server.includes('adminDevRoutes(app,pool)'));
+ assert.ok(shell.includes('<AdminApp/>'));
+});
