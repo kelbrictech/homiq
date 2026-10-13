@@ -14,6 +14,7 @@ import pg from 'pg';
 import {z} from 'zod';
 import {acceptOffer,categoryCodes,validateIntake} from './engine.js';
 if(process.env.NODE_ENV==='production') throw new Error('Production deployment blocked: secure authentication and authorization are not implemented.');
+if(process.env.HOMIQ_SERVE_WEB==='true'&&!process.env.HOMIQ_PREVIEW_PASSWORD) throw new Error('Private preview requires HOMIQ_PREVIEW_PASSWORD');
 if(process.env.ALLOW_INSECURE_DEV_AUTH!=='true') throw new Error('Local-only dev identity requires ALLOW_INSECURE_DEV_AUTH=true.');
 const app=express();
 if(process.env.HOMIQ_PREVIEW_PASSWORD){
