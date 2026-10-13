@@ -7,6 +7,7 @@ import {generateOffers} from './dispatch.js';
 import {sweepAndRedispatch} from './redispatch.js';
 import {transitionBooking,TransitionRejected} from './lifecycle.js';
 import express from 'express';
+import {timingSafeEqual} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import pg from 'pg';
@@ -14,7 +15,19 @@ import {z} from 'zod';
 import {acceptOffer,categoryCodes,validateIntake} from './engine.js';
 if(process.env.NODE_ENV==='production') throw new Error('Production deployment blocked: secure authentication and authorization are not implemented.');
 if(process.env.ALLOW_INSECURE_DEV_AUTH!=='true') throw new Error('Local-only dev identity requires ALLOW_INSECURE_DEV_AUTH=true.');
-const app=express();app.use(express.json({limit:'100kb'}));
+const app=express();
+if(process.env.HOMIQ_PREVIEW_PASSWORD){
+ const expected=Buffer.from(process.env.HOMIQ_PREVIEW_PASSWORD);
+ app.use((req,res,next)=>{
+  const auth=req.header('authorization')||'';
+  let supplied='';
+  if(auth.startsWith('Basic ')){try{const decoded=Buffer.from(auth.slice(6),'base64').toString('utf8');supplied=decoded.slice(decoded.indexOf(':')+1)}catch{}}
+  const received=Buffer.from(supplied);
+  if(received.length!==expected.length||!timingSafeEqual(received,expected)){res.setHeader('WWW-Authenticate','Basic realm="HOMIQ Private Preview"');return res.status(401).send('HOMIQ private preview: sign in to continue');}
+  res.setHeader('Cache-Control','no-store');next();
+ });
+}
+app.use(express.json({limit:'100kb'}));
 const demoPath=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../public/demo.html');
 app.get('/demo',(_req,res)=>res.sendFile(demoPath));
 const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
@@ -52,6 +65,11 @@ if(process.env.ENABLE_DEMO_ROUTES==='true' && process.env.NODE_ENV!=='production
 }
 pool.on('error',err=>console.error('Database pool error',err));
 app.use((err:unknown,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{console.error('Request error',err);res.status(400).json({error:'Invalid request body'});});
-app.listen(Number(process.env.PORT||3000),'127.0.0.1',()=>console.log('HOMIQ local development API listening'));
+if(process.env.HOMIQ_SERVE_WEB==='true'){
+ const dist=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../apps/web/dist');
+ app.use(express.static(dist));
+ app.get('*',(req,res)=>{if(req.path.startsWith('/api/'))return res.sendStatus(404);res.sendFile(path.join(dist,'index.html'));});
+}
+app.listen(Number(process.env.PORT||3000),process.env.HOMIQ_SERVE_WEB==='true'?'0.0.0.0':'127.0.0.1',()=>console.log('HOMIQ server listening'));
 let sweepRunning=false;
 setInterval(async()=>{if(sweepRunning)return;sweepRunning=true;try{await sweepAndRedispatch(pool)}catch(e){console.error('Offer sweep failed',e)}finally{sweepRunning=false}},60_000).unref();
